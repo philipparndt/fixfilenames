@@ -16,9 +16,6 @@
 package de.rnd7.fixfilenames;
 
 import java.io.File;
-import java.util.Comparator;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import com.google.common.collect.TreeTraverser;
 
@@ -31,25 +28,36 @@ public class Main {
 			return;
 		}
 
-		final Stream<File> stream = traverser(new File(args[0]));
-		stream.forEach(file -> {
-			String name = file.getName();
-			if (name.contains(BAD_CHAR)) {
-				name = name.replaceAll("a" + BAD_CHAR, "ä");
-				name = name.replaceAll("o" + BAD_CHAR, "ö");
-				name = name.replaceAll("u" + BAD_CHAR, "ü");
-				name = name.replaceAll("A" + BAD_CHAR, "Ä");
-				name = name.replaceAll("O" + BAD_CHAR, "Ö");
-				name = name.replaceAll("U" + BAD_CHAR, "Ü");
+		final Iterable<File> it = traverser(new File(args[0]));
+		for (final File file : it) {
+			fixfn(file);
+		}
+	}
 
-				final String newName = formatNameForFile(name);
+	private static void fixfn(final File file) {
+		String name = file.getName();
+		if (name.contains(BAD_CHAR)) {
+			name = name.replaceAll("a" + BAD_CHAR, "ä");
+			name = name.replaceAll("o" + BAD_CHAR, "ö");
+			name = name.replaceAll("u" + BAD_CHAR, "ü");
+			name = name.replaceAll("A" + BAD_CHAR, "Ä");
+			name = name.replaceAll("O" + BAD_CHAR, "Ö");
+			name = name.replaceAll("U" + BAD_CHAR, "Ü");
 
-				final File newFile = new File(file.getParentFile(), newName);
-				file.renameTo(newFile);
+			final String newName = formatNameForFile(name);
 
-				System.out.println(String.format("%s -> %s", file.getName(), newFile.getName()));
-			}
-		});
+			final File newFile = new File(file.getParentFile(), newName);
+			file.renameTo(newFile);
+
+			System.out.println(String.format("%s -> %s", file.getName(), newFile.getName()));
+		} else if (name.matches(".*[äöüßÄÖÜ].*")) {
+			final String newName = formatNameForFile(name);
+
+			final File newFile = new File(file.getParentFile(), newName);
+			file.renameTo(newFile);
+
+			System.out.println(String.format("%s -> %s", file.getName(), newFile.getName()));
+		}
 	}
 
 	private static String formatNameForFile(final String originalName) {
@@ -67,10 +75,8 @@ public class Main {
 		return name;
 	}
 
-	public static Stream<File> traverser(final File rootFolder) {
+	public static Iterable<File> traverser(final File rootFolder) {
 		final TreeTraverser<File> traverser = new FileTraverser();
-		final Stream<File> stream = StreamSupport.stream(traverser.postOrderTraversal(rootFolder).spliterator(), false);
-
-		return stream.sorted(Comparator.comparing(File::getAbsolutePath));
+		return traverser.postOrderTraversal(rootFolder);
 	}
 }
